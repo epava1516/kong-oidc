@@ -5,7 +5,8 @@ TestIntrospect = require("test.unit.mockable_case"):extend()
 
 function TestIntrospect:setUp()
   TestIntrospect.super:setUp()
-  self.handler = require("kong.plugins.oidc.handler")()
+  package.loaded["kong.plugins.oidc.handler"] = nil
+  self.handler = require("kong.plugins.oidc.handler")
 end
 
 function TestIntrospect:tearDown()

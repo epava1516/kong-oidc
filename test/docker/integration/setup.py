@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 
 import os
-import requests
 from collections import namedtuple
 
 from keycloak_client import KeycloakClient
 from kong_client import KongClient
 
-local_ip      = os.getenv("IP", default="")
-host          = "localhost"
-env_file_path = ".env"
+local_ip       = os.getenv("IP", default="")
+discovery_host = os.getenv("DISCOVERY_HOST", default=local_ip)
+host           = "localhost"
+env_file_path  = ".env"
 
 Config = namedtuple("Config", [
     "keycloak_endpoint",
@@ -22,9 +22,9 @@ Config = namedtuple("Config", [
     "kong_endpoint"
 ])
 
-def validate_ip_set():
-    if local_ip == "":
-        raise Exception("IP environment variable not set. See README.md for further instructions.")
+def validate_discovery_host_set():
+    if discovery_host == "":
+        raise Exception("DISCOVERY_HOST or IP environment variable not set. See README.md for further instructions.")
 
 """
 Attempt to pull in environment variables from .env file
@@ -42,6 +42,10 @@ def get_env_vars():
 def get_config(env):
     keycloak_url   = "http://{}:{}".format(host, env["KEYCLOAK_PORT"])
     discovery_path = "/auth/realms/master/.well-known/openid-configuration"
+    discovery_port = env["KEYCLOAK_PORT"]
+
+    if discovery_host != local_ip and discovery_host not in ("localhost", "127.0.0.1"):
+        discovery_port = env["KEYCLOAK_CONTAINER_PORT"]
 
     return Config(
         keycloak_endpoint = keycloak_url,
@@ -50,14 +54,12 @@ def get_config(env):
         keycloak_password = env["KEYCLOAK_PW"],
         client_id         = "kong",
         client_secret     = "secret",
-        # Set host to local IP address so requests from Kong to Keycloak can make it
-        # out of the container
-        discovery         = "http://{}:{}{}".format(local_ip, env["KEYCLOAK_PORT"], discovery_path),
+        discovery         = "http://{}:{}{}".format(discovery_host, discovery_port, discovery_path),
         kong_endpoint     = "http://{}:{}".format(host, env["KONG_HTTP_ADMIN_PORT"])
     )
 
 if __name__ == '__main__':
-    validate_ip_set()
+    validate_discovery_host_set()
 
     print("Reading environment vars from {}".format(env_file_path))
     env    = get_env_vars()

@@ -5,7 +5,7 @@ language: python
 sudo: true
 
 env:
-  - LUA_VERSION="5.1" KONG_VERSION="1.5.0-0" LUA_RESTY_OPENIDC_VERSION="1.7.2-1"
+  - LUA_VERSION="5.1" KONG_VERSION="1.5.0-0" LUA_RESTY_OPENIDC_VERSION="1.7.6-3"
 
 script:
   - sudo -E bash ci/root.sh

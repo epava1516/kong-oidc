@@ -1,3 +1,4 @@
+package.path = package.path .. ";test/lib/?.lua;;"
 local utils = require("kong.plugins.oidc.utils")
 local lu = require("luaunit")
 

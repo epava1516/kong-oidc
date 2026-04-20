@@ -1,3 +1,4 @@
+package.path = package.path .. ";test/lib/?.lua;;"
 local utils = require("kong.plugins.oidc.utils")
 local lu = require("luaunit")
 
@@ -32,6 +33,7 @@ function TestUtils:testOptions()
     discovery = "d",
     scope = "openid",
     response_type = "code",
+    session_secret = "plain-text-secret",
     ssl_verify = "no",
     token_endpoint_auth_method = "client_secret_post",
     introspection_endpoint_auth_method = "client_secret_basic",
@@ -53,6 +55,7 @@ function TestUtils:testOptions()
   lu.assertEquals(opts.discovery, "d")
   lu.assertEquals(opts.scope, "openid")
   lu.assertEquals(opts.response_type, "code")
+  lu.assertEquals(opts.session_secret, "plain-text-secret")
   lu.assertEquals(opts.ssl_verify, "no")
   lu.assertEquals(opts.token_endpoint_auth_method, "client_secret_post")
   lu.assertEquals(opts.introspection_endpoint_auth_method, "client_secret_basic")

@@ -13,7 +13,7 @@ services:
   keycloak:
     image: jboss/keycloak${KEYCLOAK_TAG}
     ports:
-      - ${KEYCLOAK_PORT}:8080
+      - ${KEYCLOAK_PORT}:${KEYCLOAK_CONTAINER_PORT}
     environment:
       KEYCLOAK_USER:     ${KEYCLOAK_USER}
       KEYCLOAK_PASSWORD: ${KEYCLOAK_PW}
@@ -24,7 +24,7 @@ services:
       - 6379:6379
 
   kong:
-    image: nokia/kong-oidc${KONG_TAG}
+    image: ${BUILD_IMG_NAME}${KONG_TAG}
     ports:
       - 8000:8000
       - 8443:8443

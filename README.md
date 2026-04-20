@@ -62,7 +62,7 @@ The plugin will try to retrieve the user's groups from a field in the token (def
 
 If you're using `luarocks` execute the following:
 
-     luarocks install kong-oidc
+     luarocks install kong-plugin-oidc
 
 [Kong >= 0.14] Since `KONG_CUSTOM_PLUGINS` has been removed, you also need to set the `KONG_PLUGINS` environment variable to include besides the bundled ones, oidc
 
@@ -77,10 +77,10 @@ If you're using `luarocks` execute the following:
 | `name`                                      |                                            | true     | plugin name, has to be `oidc`                                                                                                                                                           |
 | `config.client_id`                          |                                            | true     | OIDC Client ID                                                                                                                                                                          |
 | `config.client_secret`                      |                                            | true     | OIDC Client secret                                                                                                                                                                      |
-| `config.discovery`                          | <https://.well-known/openid-configuration> | false    | OIDC Discovery Endpoint (`/.well-known/openid-configuration`)                                                                                                                           |
+| `config.discovery`                          |                                            | true     | OIDC Discovery Endpoint (`/.well-known/openid-configuration`)                                                                                                                           |
 | `config.scope`                              | openid                                     | false    | OAuth2 Token scope. To use OIDC it has to contains the `openid` scope                                                                                                                   |
-| `config.ssl_verify`                         | false                                      | false    | Enable SSL verification to OIDC Provider                                                                                                                                                |
-| `config.session_secret`                     |                                            | false    | Additional parameter, which is used to encrypt the session cookie. Needs to be random                                                                                                   |
+| `config.ssl_verify`                         | yes                                        | false    | Enable SSL verification to OIDC Provider                                                                                                                                                |
+| `config.session_secret`                     |                                            | false    | Plain-text session secret passed to `lua-resty-openidc`. It should be random and shared across instances that must decrypt the same session cookies.                                   |
 | `config.introspection_endpoint`             |                                            | false    | Token introspection endpoint                                                                                                                                                            |
 | `config.timeout`                            |                                            | false    | OIDC endpoint calls timeout                                                                                                                                                             |
 | `config.introspection_endpoint_auth_method` | client_secret_basic                        | false    | Token introspection authentication method. `resty-openidc` supports `client_secret_(basic\|post)`                                                                                       |
@@ -104,16 +104,16 @@ If you're using `luarocks` execute the following:
 | `config.bearer_jwt_auth_allowed_auds`       |                                            | false    | List of JWT token `aud` values allowed when validating JWT token in Authorization header. If not provided, uses value from `config.client_id`                                           |
 | `config.bearer_jwt_auth_signing_algs`       | [ 'RS256' ]                                | false    | List of allowed signing algorithms for Authorization header JWT token validation. Must match to OIDC provider and `resty-openidc` supported algorithms                                  |
 | `config.header_names`                       |                                            | false    | List of custom upstream HTTP headers to be added based on claims. Must have same number of elements as `config.header_claims`. Example: `[ 'x-oidc-email', 'x-oidc-email-verified' ]`   |
-| `config.header_claims`                      |                                            | false    | List of claims to be used as source for custom upstream headers. Claims are sourced from Userinfo, ID Token, Bearer JWT, Introspection, depending on auth method.  Use only claims containing simple string values. Example: `[ 'email', 'email_verified'` |
+| `config.header_claims`                      |                                            | false    | List of claims to be used as source for custom upstream headers. Claims are sourced from Userinfo, ID Token, Bearer JWT, Introspection, depending on auth method. String, boolean and array values are supported. Example: `[ 'email', 'email_verified' ]` |
 | `config.http_proxy` || false | http proxy url |
 | `config.https_proxy` || false | https proxy url (only supports url format __http__://proxy and not __https__://proxy) |
 
 ### Enabling kong-oidc
 
-To enable the plugin only for one API:
+To enable the plugin only for one service:
 
 ```http
-POST /apis/<api_id>/plugins/ HTTP/1.1
+POST /services/<service_name>/plugins HTTP/1.1
 Host: localhost:8001
 Content-Type: application/x-www-form-urlencoded
 Cache-Control: no-cache
@@ -141,7 +141,7 @@ Content-Type: application/json; charset=utf-8
 Transfer-Encoding: chunked
 Connection: keep-alive
 Access-Control-Allow-Origin: *
-Server: kong/0.11.0
+Server: kong
 
 {
     "created_at": 1508871239797,
@@ -150,14 +150,16 @@ Server: kong/0.11.0
         "client_id": "kong-oidc",
         "discovery": "https://<oidc_provider>/.well-known/openid-configuration",
         "scope": "openid",
-        "ssl_verify": "no",
+        "ssl_verify": "yes",
         "client_secret": "29d98bf7-168c-4874-b8e9-9ba5e7382fa0",
         "token_endpoint_auth_method": "client_secret_post"
     },
     "id": "58cc119b-e5d0-4908-8929-7d6ed73cb7de",
     "enabled": true,
     "name": "oidc",
-    "api_id": "32625081-c712-4c46-b16a-5d6d9081f85f"
+    "service": {
+        "id": "32625081-c712-4c46-b16a-5d6d9081f85f"
+    }
 }
 ```
 
@@ -242,11 +244,24 @@ This may take a while for the first run, as the docker image will need to be bui
 
 ### Building the Integration Test Environment
 
-To build the integration environment (Kong with the oidc plugin enabled, and Keycloak as the OIDC Provider), you will first need to find your computer's IP, and assign that to the environment variable `IP`. Finally, you will run the `./bin/build-env.sh` command. Here's an example:
+To build the integration environment (Kong with the oidc plugin enabled, and Keycloak as the OIDC Provider), you can point discovery either at a host IP or at a resolvable container hostname such as `keycloak`. Then run `./bin/build-env.sh`. Here are examples:
 
 ```shell
 export IP=192.168.0.1
 ./bin/build-env.sh
+```
+
+```shell
+export DISCOVERY_HOST=keycloak
+./bin/build-env.sh
+```
+
+To run the integration smoke tests end-to-end:
+
+```shell
+export DISCOVERY_HOST=keycloak
+./bin/build-env.sh
+./bin/run-integration-tests.sh
 ```
 
 To tear the environment down:

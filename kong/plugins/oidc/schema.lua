@@ -1,7 +1,7 @@
 local typedefs = require "kong.db.schema.typedefs"
 
 return {
-  name = "kong-oidc",
+  name = "oidc",
   fields = {
     {
       -- this plugin will only be applied to Services or Routes
@@ -30,8 +30,7 @@ return {
           {
             discovery = {
               type = "string",
-              required = true,
-              default = "https://.well-known/openid-configuration"
+              required = true
             }
           },
           {
@@ -103,7 +102,7 @@ return {
             ssl_verify = {
               type = "string",
               required = true,
-              default = "no"
+              default = "yes"
             }
           },
           {

@@ -60,6 +60,7 @@ function M.get_options(config, ngx)
     validate_scope = config.validate_scope,
     response_type = config.response_type,
     ssl_verify = config.ssl_verify,
+    session_secret = config.session_secret,
     use_jwks = config.use_jwks,
     token_endpoint_auth_method = config.token_endpoint_auth_method,
     recovery_page_path = config.recovery_page_path,
@@ -180,12 +181,16 @@ function M.injectHeaders(header_names, header_claims, sources)
     for j = 1, #sources do
       local source, claim_value
       source = sources[j]
-      claim_value = source[claim]
-      -- Convert table to string if claim is a table
-      if type(claim_value) == "table" then
-        claim_value = table.concat(claim_value, ", ")
+      if source ~= nil then
+        claim_value = source[claim]
       end
-      if (source and source[claim]) then
+      if claim_value ~= nil then
+        -- Convert table to string if claim is a table
+        if type(claim_value) == "table" then
+          claim_value = table.concat(claim_value, ", ")
+        elseif type(claim_value) ~= "string" then
+          claim_value = tostring(claim_value)
+        end
         kong.service.request.set_header(header, claim_value)
         break
       end

@@ -8,6 +8,7 @@ function MockableCase:setUp()
   self.mocked_ngx = {
     DEBUG = "debug",
     ERR = "error",
+    HTTP_FOUND = 302,
     HTTP_UNAUTHORIZED = 401,
     HTTP_FORBIDDEN = 403,
     HTTP_INTERNAL_SERVER_ERROR = 500,
@@ -25,7 +26,10 @@ function MockableCase:setUp()
     end,
     say = function(...) end,
     exit = function(...) end,
-    redirect = function(...) end,
+    redirect = function(uri, status)
+      self.mocked_ngx.redirect_uri = uri
+      self.mocked_ngx.status = status or self.mocked_ngx.HTTP_FOUND
+    end,
     config = {
       subsystem = "http"
     }

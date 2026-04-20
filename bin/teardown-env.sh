@@ -1,4 +1,7 @@
 #!/bin/bash
-. .env
+set -euo pipefail
 
-docker-compose -f ${INTEGRATION_PATH}/docker-compose.yml down
+. .env
+. bin/_docker.sh
+
+_compose -f ${INTEGRATION_PATH}/docker-compose.yml down --remove-orphans --volumes

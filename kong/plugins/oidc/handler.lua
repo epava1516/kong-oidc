@@ -1,10 +1,44 @@
 local OidcHandler = {
-    VERSION = "1.3.0",
+    VERSION = "1.4.0-1",
     PRIORITY = 1000,
 }
 local utils = require("kong.plugins.oidc.utils")
 local filter = require("kong.plugins.oidc.filter")
 local session = require("kong.plugins.oidc.session")
+
+local function split_scopes(value)
+  local scopes = {}
+
+  if value == nil then
+    return scopes
+  end
+
+  if type(value) == "table" then
+    return value
+  end
+
+  for scope in tostring(value):gmatch("%S+") do
+    table.insert(scopes, scope)
+  end
+
+  return scopes
+end
+
+local function has_all_scopes(required_scopes, granted_scopes)
+  local granted = {}
+
+  for _, scope in ipairs(split_scopes(granted_scopes)) do
+    granted[scope] = true
+  end
+
+  for _, scope in ipairs(split_scopes(required_scopes)) do
+    if not granted[scope] then
+      return false
+    end
+  end
+
+  return true
+end
 
 
 function OidcHandler:access(config)
@@ -94,16 +128,16 @@ function make_oidc(oidcConfig)
   end
   local res, err = require("resty.openidc").authenticate(oidcConfig, ngx.var.request_uri, unauth_action)
 
-  if err then
-    if err == 'unauthorized request' then
-      return kong.response.error(ngx.HTTP_UNAUTHORIZED)
-    else
-      if oidcConfig.recovery_page_path then
+    if err then
+      if err == 'unauthorized request' then
+        return kong.response.error(ngx.HTTP_UNAUTHORIZED)
+      else
+        if oidcConfig.recovery_page_path then
     	  ngx.log(ngx.DEBUG, "Redirecting to recovery page: " .. oidcConfig.recovery_page_path)
-        ngx.redirect(oidcConfig.recovery_page_path)
+          return ngx.redirect(oidcConfig.recovery_page_path)
+        end
+        return kong.response.error(ngx.HTTP_INTERNAL_SERVER_ERROR)
       end
-      return kong.response.error(ngx.HTTP_INTERNAL_SERVER_ERROR)
-    end
   end
   return res
 end
@@ -124,16 +158,7 @@ function introspect(oidcConfig)
       return nil
     end
     if oidcConfig.validate_scope == "yes" then
-      local validScope = false
-      if res.scope then
-        for scope in res.scope:gmatch("([^ ]+)") do
-          if scope == oidcConfig.scope then
-            validScope = true
-            break
-          end
-        end
-      end
-      if not validScope then
+      if not has_all_scopes(oidcConfig.scope, res.scope) then
         kong.log.err("Scope validation failed")
         return kong.response.error(ngx.HTTP_FORBIDDEN)
       end

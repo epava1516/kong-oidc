@@ -13,7 +13,8 @@ function TestHandler:setUp()
     return self.module_resty.openidc
   end
 
-  self.handler = require("kong.plugins.oidc.handler")()
+  package.loaded["kong.plugins.oidc.handler"] = nil
+  self.handler = require("kong.plugins.oidc.handler")
 end
 
 function TestHandler:tearDown()
@@ -130,6 +131,8 @@ function TestHandler:test_authenticate_nok_with_recovery()
 
   self.handler:access({recovery_page_path = "x"})
   lu.assertTrue(self:log_contains("recovery page"))
+  lu.assertEquals(ngx.redirect_uri, "x")
+  lu.assertEquals(ngx.status, ngx.HTTP_FOUND)
 end
 
 function TestHandler:test_introspect_ok_no_userinfo()
@@ -255,6 +258,25 @@ function TestHandler:test_introspect_bearer_token_and_scope_ok()
   ngx.encode_base64 = function(x) return "x" end
 
   self.handler:access({introspection_endpoint = "x", bearer_only = "yes", use_jwks = "yes", userinfo_header_name = "X-Userinfo", validate_scope = "yes", scope = "bar"})
+  lu.assertNotEquals(ngx.status, ngx.HTTP_FORBIDDEN)
+  lu.assertNotEquals(ngx.status, ngx.HTTP_INTERNAL_SERVER_ERROR)
+end
+
+function TestHandler:test_introspect_bearer_token_with_multiple_required_scopes_ok()
+  self.module_resty.openidc.bearer_jwt_verify = function(opts)
+    return {scope = "openid email profile"}, false
+  end
+  ngx.req.get_headers = function() return {Authorization = "Bearer xxx"} end
+
+  self.handler:access({
+    introspection_endpoint = "x",
+    bearer_only = "yes",
+    use_jwks = "yes",
+    validate_scope = "yes",
+    scope = "openid email",
+    disable_userinfo_header = "yes"
+  })
+
   lu.assertNotEquals(ngx.status, ngx.HTTP_FORBIDDEN)
   lu.assertNotEquals(ngx.status, ngx.HTTP_INTERNAL_SERVER_ERROR)
 end
