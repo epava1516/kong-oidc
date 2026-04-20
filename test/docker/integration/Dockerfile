@@ -14,6 +14,6 @@ RUN luarocks install https://luarocks.org/manifests/openresty/lua-cjson-2.1.0.10
 RUN luarocks install https://luarocks.org/manifests/daurnimator/luaossl-20190731-0.src.rock OPENSSL_DIR=/usr/local/kong CRYPTO_DIR=/usr/local/kong
 
 # Change openidc version when version in rockspec changes
-RUN luarocks install https://luarocks.org/manifests/hans.zandbelt/lua-resty-openidc-1.7.6-3.src.rock
+RUN luarocks install https://luarocks.org/manifests/hanszandbelt/lua-resty-openidc-1.7.6-3.src.rock
 
 COPY . /usr/local/kong-oidc
