@@ -46,7 +46,9 @@ class KongClient:
         except requests.exceptions.HTTPError:
             pass
         url = "{}/services/{}".format(self._endpoint, name)
-        self._session.delete(url).raise_for_status()
+        res = self._session.delete(url)
+        if res.status_code != 404:
+            res.raise_for_status()
 
     def delete_route(self, route_id):
         url = "{}/routes/{}".format(self._endpoint, route_id)

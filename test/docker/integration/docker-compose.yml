@@ -21,6 +21,11 @@ services:
     ports:
       - 6379:6379
 
+  httpbin:
+    image: mccutchen/go-httpbin:v2.15.0
+    expose:
+      - "8080"
+
   kong:
     image: ${BUILD_IMG_NAME}${KONG_TAG}
     ports:
@@ -45,3 +50,4 @@ services:
     depends_on:
       - kong-db
       - kong-session-store
+      - httpbin

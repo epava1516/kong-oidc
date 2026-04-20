@@ -19,7 +19,8 @@ Config = namedtuple("Config", [
     "client_id",
     "client_secret",
     "discovery",
-    "kong_endpoint"
+    "kong_endpoint",
+    "upstream_url"
 ])
 
 def validate_discovery_host_set():
@@ -55,7 +56,8 @@ def get_config(env):
         client_id         = "kong",
         client_secret     = "secret",
         discovery         = "http://{}:{}{}".format(discovery_host, discovery_port, discovery_path),
-        kong_endpoint     = "http://{}:{}".format(host, env["KONG_HTTP_ADMIN_PORT"])
+        kong_endpoint     = "http://{}:{}".format(host, env["KONG_HTTP_ADMIN_PORT"]),
+        upstream_url      = "http://httpbin:8080"
     )
 
 if __name__ == '__main__':
@@ -79,7 +81,7 @@ if __name__ == '__main__':
 
     print("Configuring Kong services, routes, and plugins for testing")
     kong_client.delete_service("httpbin")
-    kong_client.create_service("httpbin", "http://httpbin.org")
+    kong_client.create_service("httpbin", config.upstream_url)
     kong_client.create_route("httpbin", ["/httpbin"])
     kong_client.create_plugin("oidc", "httpbin", {
         "client_id":     config.client_id,
