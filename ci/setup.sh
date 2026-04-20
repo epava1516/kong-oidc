@@ -10,7 +10,7 @@ hererocks lua_install -r^ --lua=${LUA_VERSION}
 export PATH=${PATH}:${PWD}/lua_install/bin
 
 luarocks install kong ${KONG_VERSION}
-luarocks install lua-resty-openidc ${LUA_RESTY_OPENIDC_VERSION}
-luarocks install lua-cjson
-luarocks install luaunit
-luarocks install luacov
+luarocks install https://luarocks.org/manifests/hans.zandbelt/lua-resty-openidc-${LUA_RESTY_OPENIDC_VERSION}.src.rock
+luarocks install https://luarocks.org/manifests/openresty/lua-cjson-2.1.0.10-1.rockspec
+luarocks install https://luarocks.org/manifests/bluebird75/luaunit-3.5-1.rockspec
+luarocks install https://luarocks.org/manifests/mpeterv/luacov-0.13.0-1.src.rock
