@@ -31,8 +31,15 @@ set -euo pipefail
     _compose -f ${INTEGRATION_PATH}/docker-compose.yml up -d
   )
 
-  _wait_for_endpoint http://localhost:${KONG_HTTP_ADMIN_PORT}
-  _wait_for_endpoint http://localhost:${KEYCLOAK_PORT}
+  if ! _wait_for_endpoint http://localhost:${KONG_HTTP_ADMIN_PORT} 60; then
+    _compose -f ${INTEGRATION_PATH}/docker-compose.yml logs --no-color kong || true
+    exit 1
+  fi
+
+  if ! _wait_for_endpoint http://localhost:${KEYCLOAK_PORT} 60; then
+    _compose -f ${INTEGRATION_PATH}/docker-compose.yml logs --no-color keycloak || true
+    exit 1
+  fi
 
   (set -x
     python3 ${INTEGRATION_PATH}/setup.py

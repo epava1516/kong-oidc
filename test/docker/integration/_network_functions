@@ -35,11 +35,15 @@ function _endpoint_ready() {
 function _wait_for_endpoint() {
     local url=$1
     if ! shift 1; then echo "ERROR: ${FUNCNAME[0]}() Missing argument"; return 1; fi
-    local -i timeout=$2
+    local -i timeout=${1:-60}
 
     local -i sec=0
     echo -n "Waiting for ${url} "
     while ! _endpoint_ready ${url}; do
+        if (( timeout > 0 && sec >= timeout )); then
+            echo "timeout after ${sec}s"
+            return 1
+        fi
         echo -n "."
         sleep 1
         sec+=1
