@@ -1,11 +1,11 @@
 #!/bin/bash
 set -euo pipefail
 
-. .env
-. bin/_docker.sh
-. ${INTEGRATION_PATH}/_network_functions
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/_docker.sh"
+. "${REPO_ROOT}/${INTEGRATION_PATH}/_network_functions"
 
 (export DISCOVERY_HOST="${DISCOVERY_HOST:-${IP:-}}"
+  cd "${REPO_ROOT}"
 
   if [[ -z "${DISCOVERY_HOST}" ]]; then
     echo "Please set DISCOVERY_HOST or IP. Example: export DISCOVERY_HOST=keycloak or export IP=192.168.0.1"

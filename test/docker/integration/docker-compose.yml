@@ -1,5 +1,3 @@
-version: '3.4'
-
 services:
   kong-db:
     image: postgres${KONG_DB_TAG}

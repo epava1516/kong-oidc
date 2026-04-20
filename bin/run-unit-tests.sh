@@ -1,5 +1,9 @@
 #!/bin/bash
-. .env
+set -euo pipefail
+
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/_docker.sh"
+
+cd "${REPO_ROOT}"
 
 (set -ex
   docker build \

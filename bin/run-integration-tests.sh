@@ -1,8 +1,9 @@
 #!/bin/bash
 set -euo pipefail
 
-. .env
-. bin/_docker.sh
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/_docker.sh"
+
+cd "${REPO_ROOT}"
 
 cleanup() {
   local exit_code=$?
@@ -12,11 +13,11 @@ cleanup() {
     _compose -f ${INTEGRATION_PATH}/docker-compose.yml logs --no-color || true
   fi
 
-  ./bin/teardown-env.sh || true
+  "${REPO_ROOT}/bin/teardown-env.sh" || true
   exit $exit_code
 }
 
 trap cleanup EXIT
 
-./bin/build-env.sh
+"${REPO_ROOT}/bin/build-env.sh"
 python3 ${INTEGRATION_PATH}/verify.py
