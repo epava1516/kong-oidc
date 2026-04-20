@@ -23,7 +23,11 @@ set -euo pipefail
   _wait_for_listener localhost:${KONG_SESSION_STORE_PORT}
 
   (set -x
-    _compose -f ${INTEGRATION_PATH}/docker-compose.yml run --rm kong kong migrations bootstrap
+    if ! _compose -f ${INTEGRATION_PATH}/docker-compose.yml run --rm kong kong migrations bootstrap; then
+      _compose -f ${INTEGRATION_PATH}/docker-compose.yml logs --no-color kong || true
+      exit 1
+    fi
+
     _compose -f ${INTEGRATION_PATH}/docker-compose.yml up -d
   )
 
