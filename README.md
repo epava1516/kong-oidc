@@ -64,6 +64,10 @@ If you're using `luarocks` execute the following:
 
      luarocks install kong-plugin-oidc
 
+If you prefer a prebuilt container image, GitHub Actions can publish this repository to GHCR:
+
+     docker pull ghcr.io/epava1516/kong-oidc:latest
+
 [Kong >= 0.14] Since `KONG_CUSTOM_PLUGINS` has been removed, you also need to set the `KONG_PLUGINS` environment variable to include besides the bundled ones, oidc
 
      export KONG_PLUGINS=bundled,oidc
