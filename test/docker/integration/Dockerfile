@@ -12,6 +12,7 @@ RUN luarocks install https://luarocks.org/manifests/mpeterv/luacov-0.13.0-1.src.
 RUN luarocks install https://luarocks.org/manifests/bluebird75/luaunit-3.5-1.rockspec
 RUN luarocks install https://luarocks.org/manifests/openresty/lua-cjson-2.1.0.10-1.rockspec
 RUN luarocks install https://luarocks.org/manifests/daurnimator/luaossl-20190731-0.src.rock OPENSSL_DIR=/usr/local/kong CRYPTO_DIR=/usr/local/kong
+RUN luarocks install https://luarocks.org/manifests/cdbattags/lua-resty-jwt-0.2.3-0.src.rock
 
 # Change openidc version when version in rockspec changes
 RUN luarocks install https://luarocks.org/manifests/hanszandbelt/lua-resty-openidc-1.7.6-3.src.rock
