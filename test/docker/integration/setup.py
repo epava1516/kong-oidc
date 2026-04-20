@@ -41,8 +41,9 @@ def get_env_vars():
     return {l[0]: l[1] for l in lines}
 
 def get_config(env):
-    keycloak_url   = "http://{}:{}".format(host, env["KEYCLOAK_PORT"])
-    discovery_path = "/auth/realms/master/.well-known/openid-configuration"
+    keycloak_base_path = env.get("KEYCLOAK_BASE_PATH", "").rstrip("/")
+    keycloak_url   = "http://{}:{}{}".format(host, env["KEYCLOAK_PORT"], keycloak_base_path)
+    discovery_path = "{}/realms/master/.well-known/openid-configuration".format(keycloak_base_path)
     discovery_port = env["KEYCLOAK_PORT"]
 
     if discovery_host != local_ip and discovery_host not in ("localhost", "127.0.0.1"):
