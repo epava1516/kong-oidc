@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import os
+import time
 from urllib.parse import parse_qs, urlparse
 
 import requests
@@ -8,6 +9,8 @@ import requests
 
 host = "localhost"
 env_file_path = ".env"
+proxy_ready_timeout_seconds = 10
+proxy_ready_poll_interval_seconds = 0.5
 
 
 def get_env_vars():
@@ -36,9 +39,19 @@ def assert_plugin_configured(admin_url):
 
 
 def assert_proxy_redirect(proxy_url):
-    response = requests.get(f"{proxy_url}/httpbin", allow_redirects=False)
-    if response.status_code != 302:
-        raise AssertionError(f"Expected 302 from protected route, got {response.status_code}")
+    deadline = time.monotonic() + proxy_ready_timeout_seconds
+    response = None
+
+    while time.monotonic() < deadline:
+        response = requests.get(f"{proxy_url}/httpbin", allow_redirects=False)
+        if response.status_code == 302:
+            break
+        time.sleep(proxy_ready_poll_interval_seconds)
+
+    if response is None or response.status_code != 302:
+        raise AssertionError(
+            f"Expected 302 from protected route, got {response.status_code if response is not None else 'no response'}"
+        )
 
     location = response.headers.get("Location", "")
     if "protocol/openid-connect/auth" not in location:
