@@ -1,6 +1,11 @@
+import time
+
 import requests
 
 class KeycloakClient:
+    _token_ready_timeout_seconds = 30
+    _token_ready_poll_interval_seconds = 1
+
     def __init__(self, url, realm, username, password):
         self._endpoint = url.rstrip("/")
         self._realm = realm
@@ -42,7 +47,16 @@ class KeycloakClient:
             "Content-Type": "application/x-www-form-urlencoded"
         }
         
-        res = self._session.post(url, data=payload, headers=headers)
-        res.raise_for_status()
-        
-        return res.json()["access_token"]
+        deadline = time.monotonic() + self._token_ready_timeout_seconds
+        last_error = None
+
+        while time.monotonic() < deadline:
+            try:
+                res = self._session.post(url, data=payload, headers=headers)
+                res.raise_for_status()
+                return res.json()["access_token"]
+            except (requests.RequestException, KeyError) as err:
+                last_error = err
+                time.sleep(self._token_ready_poll_interval_seconds)
+
+        raise Exception("Cannot obtain Keycloak admin token") from last_error
