@@ -5,6 +5,7 @@ local OidcHandler = {
 local utils = require("kong.plugins.oidc.utils")
 local filter = require("kong.plugins.oidc.filter")
 local session = require("kong.plugins.oidc.session")
+local validators = require("kong.plugins.oidc.validators")
 
 local function split_scopes(value)
   local scopes = {}
@@ -133,8 +134,12 @@ function make_oidc(oidcConfig)
         return kong.response.error(ngx.HTTP_UNAUTHORIZED)
       else
         if oidcConfig.recovery_page_path then
-    	  ngx.log(ngx.DEBUG, "Redirecting to recovery page: " .. oidcConfig.recovery_page_path)
-          return ngx.redirect(oidcConfig.recovery_page_path)
+          local isValid, validationErr = validators.validate_recovery_page_path(oidcConfig.recovery_page_path)
+          if isValid then
+     	    ngx.log(ngx.DEBUG, "Redirecting to recovery page: " .. oidcConfig.recovery_page_path)
+            return ngx.redirect(oidcConfig.recovery_page_path)
+          end
+          kong.log.err("Invalid recovery_page_path configured: ", validationErr)
         end
         return kong.response.error(ngx.HTTP_INTERNAL_SERVER_ERROR)
       end

@@ -1,4 +1,5 @@
 local typedefs = require "kong.db.schema.typedefs"
+local validators = require("kong.plugins.oidc.validators")
 
 return {
   name = "oidc",
@@ -127,7 +128,8 @@ return {
           },
           {
             recovery_page_path = {
-              type = "string"
+              type = "string",
+              custom_validator = validators.validate_recovery_page_path
             }
           },
           {
@@ -166,13 +168,15 @@ return {
           },
           {
             filters = {
-              type = "string"
+              type = "string",
+              custom_validator = validators.validate_filter_csv
             }
           },
           {
             ignore_auth_filters = {
               type = "string",
-              required = false
+              required = false,
+              custom_validator = validators.validate_filter_csv
             }
           },
           {

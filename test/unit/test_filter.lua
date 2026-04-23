@@ -6,9 +6,11 @@ TestFilter = require("test.unit.base_case"):extend()
 function TestFilter:setUp()
   TestFilter.super:setUp()
   _G.ngx = {
+    ERR = "error",
     var = {
       uri = ""
-    }
+    },
+    log = function(...) end
   }
 end
 
@@ -44,6 +46,12 @@ end
 function TestFilter:testProcessRequestWhenTheyAreNoFiltersEmpty()
   ngx.var.uri = "/pattern1"
   config.filters= {}
+  lu.assertTrue(filter.shouldProcessRequest(config))
+end
+
+function TestFilter:testProcessRequestWhenFilterPatternIsInvalid()
+  ngx.var.uri = "/pattern1"
+  config.filters = { "[" }
   lu.assertTrue(filter.shouldProcessRequest(config))
 end
 

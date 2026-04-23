@@ -37,7 +37,8 @@ function TestUtils:testOptions()
     ssl_verify = "no",
     token_endpoint_auth_method = "client_secret_post",
     introspection_endpoint_auth_method = "client_secret_basic",
-    filters = "pattern1,pattern2,pattern3",
+    filters = " /pattern1 , ^/pattern2$ ",
+    ignore_auth_filters = " /pattern3 ",
     logout_path = "/logout",
     redirect_after_logout_uri = "/login",
     userinfo_header_name = "X-UI",
@@ -71,9 +72,9 @@ function TestUtils:testOptions()
   lu.assertEquals(opts.disable_access_token_header, true)
 
   local expectedFilters = {
-    "pattern1",
-    "pattern2",
-    "pattern3"
+    "/pattern1",
+    "^/pattern2$",
+    "/pattern3"
   }
 
   lu.assertItemsEquals(expectedFilters, opts.filters)

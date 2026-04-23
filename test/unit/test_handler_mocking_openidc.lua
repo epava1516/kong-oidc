@@ -129,10 +129,20 @@ function TestHandler:test_authenticate_nok_with_recovery()
     return nil, true
   end
 
-  self.handler:access({recovery_page_path = "x"})
+  self.handler:access({recovery_page_path = "/recovery"})
   lu.assertTrue(self:log_contains("recovery page"))
-  lu.assertEquals(ngx.redirect_uri, "x")
+  lu.assertEquals(ngx.redirect_uri, "/recovery")
   lu.assertEquals(ngx.status, ngx.HTTP_FOUND)
+end
+
+function TestHandler:test_authenticate_nok_with_invalid_recovery_path()
+  self.module_resty.openidc.authenticate = function(opts)
+    return nil, true
+  end
+
+  self.handler:access({recovery_page_path = "https://attacker.example"})
+  lu.assertNil(ngx.redirect_uri)
+  lu.assertEquals(ngx.status, ngx.HTTP_INTERNAL_SERVER_ERROR)
 end
 
 function TestHandler:test_introspect_ok_no_userinfo()

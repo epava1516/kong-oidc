@@ -2,7 +2,7 @@
 
 [![Join the chat at https://gitter.im/nokia/kong-oidc](https://badges.gitter.im/nokia/kong-oidc.svg)](https://gitter.im/nokia/kong-oidc?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
-**Continuous Integration:** [![Build Status](https://travis-ci.org/nokia/kong-oidc.svg?branch=master)](https://travis-ci.org/nokia/kong-oidc)
+**Continuous Integration:** [![CI](https://github.com/epava1516/kong-oidc/actions/workflows/ci.yml/badge.svg)](https://github.com/epava1516/kong-oidc/actions/workflows/ci.yml)
 [![Coverage Status](https://coveralls.io/repos/github/nokia/kong-oidc/badge.svg?branch=master)](https://coveralls.io/github/nokia/kong-oidc?branch=master) <br/>
 
 **kong-oidc** is a plugin for [Kong](https://github.com/Mashape/kong) implementing the
@@ -16,7 +16,7 @@ It maintains sessions for authenticated users by leveraging `lua-resty-openidc` 
 a configurable choice between storing the session state in a client-side browser cookie or use
 in of the server-side storage mechanisms `shared-memory|memcache|redis`.
 
-> **Note:** at the moment, there is an issue using memcached/redis, probably due to session locking: the sessions freeze. Help to debug this is appreciated. I am currently using shared memory to store sessions.
+> **Note:** memcached/redis session storage is currently unreliable because sessions can freeze under locking. Treat those backends as experimental and prefer shared memory until the locking issue is understood and fixed.
 
 It supports server-wide caching of resolved Discovery documents and validated Access Tokens.
 
@@ -84,7 +84,7 @@ If you prefer a prebuilt container image, GitHub Actions can publish this reposi
 | `config.discovery`                          |                                            | true     | OIDC Discovery Endpoint (`/.well-known/openid-configuration`)                                                                                                                           |
 | `config.scope`                              | openid                                     | false    | OAuth2 Token scope. To use OIDC it has to contains the `openid` scope                                                                                                                   |
 | `config.ssl_verify`                         | yes                                        | false    | Enable SSL verification to OIDC Provider                                                                                                                                                |
-| `config.session_secret`                     |                                            | false    | Plain-text session secret passed to `lua-resty-openidc`. It should be random and shared across instances that must decrypt the same session cookies.                                   |
+| `config.session_secret`                     |                                            | false    | Plain-text session secret passed to `lua-resty-openidc`. Treat it as a sensitive credential: use a long random value, share it only across instances that must decrypt the same session cookies, and keep it out of version control. |
 | `config.introspection_endpoint`             |                                            | false    | Token introspection endpoint                                                                                                                                                            |
 | `config.timeout`                            |                                            | false    | OIDC endpoint calls timeout                                                                                                                                                             |
 | `config.introspection_endpoint_auth_method` | client_secret_basic                        | false    | Token introspection authentication method. `resty-openidc` supports `client_secret_(basic\|post)`                                                                                       |
@@ -92,8 +92,9 @@ If you prefer a prebuilt container image, GitHub Actions can publish this reposi
 | `config.realm`                              | kong                                       | false    | Realm used in WWW-Authenticate response header                                                                                                                                          |
 | `config.logout_path`                        | /logout                                    | false    | Absolute path used to logout from the OIDC RP                                                                                                                                           |
 | `config.unauth_action`                      | auth                                       | false    | What action to take when unauthenticated <br> - `auth` to redirect to the login page and attempt (re)authenticatation,<br> - `deny` to stop with 401                                    |
-| `config.recovery_page_path`                 |                                            | false    | Path of a recovery page to redirect the user when error occurs (except 401). To not show any error, you can use '/' to redirect immediately home. The error will be logged server side. |
-| `config.ignore_auth_filters`                |                                            | false    | A comma-separated list of endpoints to bypass authentication for                                                                                                                        |
+| `config.recovery_page_path`                 |                                            | false    | Internal path of a recovery page to redirect the user when an error occurs (except 401). It must start with `/`; absolute URLs are rejected. To not show any error, you can use `/` to redirect immediately home. The error will be logged server side. |
+| `config.filters`                            |                                            | false    | A comma-separated list of request path patterns that should skip OIDC processing. Each value must start with `/` or `^/` and is evaluated as a Lua pattern.                             |
+| `config.ignore_auth_filters`                |                                            | false    | A comma-separated list of request path patterns to bypass authentication for. Each value must start with `/` or `^/` and is evaluated as a Lua pattern.                                |
 | `config.redirect_uri`                       |                                            | false    | A relative or absolute URI the OP will redirect to after successful authentication                                                                                                      |
 | `config.userinfo_header_name`               | `X-Userinfo`                               | false    | The name of the HTTP header to use when passing the UserInfo to the upstream server                                                                                                     |
 | `config.id_token_header_name`               | `X-ID-Token`                               | false    | The name of the HTTP header to use when passing the ID Token to the upstream server                                                                                                     |

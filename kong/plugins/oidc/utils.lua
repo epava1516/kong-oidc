@@ -1,16 +1,11 @@
 local cjson = require("cjson")
 local constants = require "kong.constants"
+local validators = require("kong.plugins.oidc.validators")
 
 local M = {}
 
 local function parseFilters(csvFilters)
-  local filters = {}
-  if (not (csvFilters == nil)) and (not (csvFilters == ",")) then
-    for pattern in string.gmatch(csvFilters, "[^,]+") do
-      table.insert(filters, pattern)
-    end
-  end
-  return filters
+  return validators.parse_filter_csv(csvFilters)
 end
 
 local function formatAsBearerToken(token)
