@@ -6,6 +6,13 @@ on:
       - "**"
   pull_request:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   unit-tests:
     runs-on: ubuntu-latest
@@ -16,6 +23,17 @@ jobs:
 
       - name: Run unit tests in the test container
         run: bash ./bin/run-unit-tests.sh
+
+      - name: Upload unit test coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-coverage
+          path: |
+            luacov.report.out
+            luacov.stats.out
+          if-no-files-found: warn
+          retention-days: 14
 
   integration-tests:
     runs-on: ubuntu-latest

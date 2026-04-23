@@ -1,6 +1,6 @@
 services:
   kong-db:
-    image: postgres${KONG_DB_TAG}
+    image: postgres${KONG_DB_TAG}@${KONG_DB_DIGEST}
     ports:
       - ${KONG_DB_PORT}:5432
     environment:
@@ -9,7 +9,7 @@ services:
       POSTGRES_DB:       ${KONG_DB_NAME}
 
   keycloak:
-    image: quay.io/keycloak/keycloak${KEYCLOAK_TAG}
+    image: quay.io/keycloak/keycloak${KEYCLOAK_TAG}@${KEYCLOAK_DIGEST}
     command: start-dev
     ports:
       - ${KEYCLOAK_PORT}:${KEYCLOAK_CONTAINER_PORT}
@@ -19,12 +19,12 @@ services:
       KC_HOSTNAME_STRICT: "false"
 
   kong-session-store:
-    image: redis
+    image: redis${KONG_SESSION_STORE_TAG}@${KONG_SESSION_STORE_DIGEST}
     ports:
       - 6379:6379
 
   httpbin:
-    image: mccutchen/go-httpbin:v2.15.0
+    image: mccutchen/go-httpbin${HTTPBIN_TAG}@${HTTPBIN_DIGEST}
     expose:
       - "8080"
 

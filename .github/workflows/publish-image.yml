@@ -5,7 +5,7 @@ on:
     branches:
       - master
     tags:
-      - "*"
+      - "v*"
   workflow_dispatch:
     inputs:
       version_tag:
@@ -16,14 +16,67 @@ on:
 permissions:
   contents: read
   packages: write
+  security-events: write
+
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
+  KONG_BASE_TAG: :2.8.0-ubuntu
+  KONG_BASE_DIGEST: sha256:025cd6086dd1809a98b5997426b5150693acf874f1a1224468e08cec8d2c7d93
 
 jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Run unit tests in the test container
+        run: bash ./bin/run-unit-tests.sh
+
+      - name: Upload unit test coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: publish-unit-coverage
+          path: |
+            luacov.report.out
+            luacov.stats.out
+          if-no-files-found: warn
+          retention-days: 14
+
+  integration-tests:
+    runs-on: ubuntu-latest
+    needs: unit-tests
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Python dependencies
+        run: python -m pip install requests
+
+      - name: Build integration image and run containerized smoke tests
+        env:
+          DISCOVERY_HOST: keycloak
+        run: bash ./bin/run-integration-tests.sh
+
   publish:
     runs-on: ubuntu-latest
+    needs:
+      - integration-tests
+    outputs:
+      image-digest: ${{ steps.build.outputs.digest }}
 
     steps:
       - name: Check out repository
@@ -50,10 +103,46 @@ jobs:
             type=raw,value=${{ inputs.version_tag }},enable=${{ github.event_name == 'workflow_dispatch' && inputs.version_tag != '' }}
 
       - name: Build and push image
+        id: build
         uses: docker/build-push-action@v6
         with:
           context: .
           file: ./Dockerfile
+          build-args: |
+            KONG_BASE_TAG=${{ env.KONG_BASE_TAG }}
+            KONG_BASE_DIGEST=${{ env.KONG_BASE_DIGEST }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          provenance: true
+          sbom: true
+
+      - name: Publish LuaRocks package
+        if: startsWith(github.ref, 'refs/tags/') && secrets.LUAROCKS_API_KEY != ''
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y luarocks
+          luarocks upload kong-plugin-oidc-1.4.0-1.rockspec --api-key "${{ secrets.LUAROCKS_API_KEY }}"
+
+  scan-image:
+    runs-on: ubuntu-latest
+    needs:
+      - publish
+
+    steps:
+      - name: Scan published image with Trivy
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ needs.publish.outputs.image-digest }}
+          format: sarif
+          output: trivy-results.sarif
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: 0
+
+      - name: Upload Trivy scan
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-results.sarif

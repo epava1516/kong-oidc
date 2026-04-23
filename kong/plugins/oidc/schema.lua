@@ -70,12 +70,14 @@ return {
             realm = {
               type = "string",
               required = true,
-              default = "kong"
+              default = "kong",
+              custom_validator = validators.validate_realm
             }
           },
           {
             redirect_uri = {
-              type = "string"
+              type = "string",
+              custom_validator = validators.validate_redirect_target
             }
           },
           {
@@ -143,7 +145,8 @@ return {
             redirect_after_logout_uri = {
               type = "string",
               required = false,
-              default = "/"
+              default = "/",
+              custom_validator = validators.validate_redirect_target
             }
           },
           {
@@ -156,7 +159,8 @@ return {
           {
             post_logout_redirect_uri = {
               type = "string",
-              required = false
+              required = false,
+              custom_validator = validators.validate_redirect_target
             }
           },
           {

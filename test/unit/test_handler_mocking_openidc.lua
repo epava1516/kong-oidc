@@ -204,6 +204,18 @@ function TestHandler:test_bearer_only_with_bad_token()
   lu.assertFalse(self:log_contains("introspect succeeded"))
 end
 
+function TestHandler:test_bearer_only_with_invalid_realm_is_sanitized()
+  self.module_resty.openidc.introspect = function(opts)
+    return {}, "validation failed"
+  end
+  ngx.req.get_headers = function() return {Authorization = "Bearer xxx"} end
+
+  self.handler:access({introspection_endpoint = "x", bearer_only = "yes", realm = "kong\r\nInjected: 1"})
+
+  lu.assertEquals(ngx.header["WWW-Authenticate"], 'Bearer realm="kong  Injected: 1",error="validation failed"')
+  lu.assertEquals(ngx.status, ngx.HTTP_UNAUTHORIZED)
+end
+
 function TestHandler:test_introspect_bearer_token_and_property_mapping()
   self.module_resty.openidc.bearer_jwt_verify = function(opts)
     return {foo = "bar"}, false

@@ -15,7 +15,7 @@ set -euo pipefail
   (set -x
     # Tear down environment if it is running
     _compose -f ${INTEGRATION_PATH}/docker-compose.yml down --remove-orphans
-    docker build --build-arg KONG_BASE_TAG=${KONG_BASE_TAG} -t ${BUILD_IMG_NAME}${KONG_TAG} -f ${INTEGRATION_PATH}/Dockerfile .
+    docker build --build-arg KONG_BASE_TAG=${KONG_BASE_TAG} --build-arg KONG_BASE_DIGEST=${KONG_BASE_DIGEST} -t ${BUILD_IMG_NAME}${KONG_TAG} -f ${INTEGRATION_PATH}/Dockerfile .
     _compose -f ${INTEGRATION_PATH}/docker-compose.yml up -d kong-db kong-session-store
   )
 

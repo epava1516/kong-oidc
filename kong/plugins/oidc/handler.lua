@@ -7,32 +7,14 @@ local filter = require("kong.plugins.oidc.filter")
 local session = require("kong.plugins.oidc.session")
 local validators = require("kong.plugins.oidc.validators")
 
-local function split_scopes(value)
-  local scopes = {}
-
-  if value == nil then
-    return scopes
-  end
-
-  if type(value) == "table" then
-    return value
-  end
-
-  for scope in tostring(value):gmatch("%S+") do
-    table.insert(scopes, scope)
-  end
-
-  return scopes
-end
-
 local function has_all_scopes(required_scopes, granted_scopes)
   local granted = {}
 
-  for _, scope in ipairs(split_scopes(granted_scopes)) do
+  for scope in tostring(granted_scopes or ""):gmatch("%S+") do
     granted[scope] = true
   end
 
-  for _, scope in ipairs(split_scopes(required_scopes)) do
+  for _, scope in ipairs(required_scopes or {}) do
     if not granted[scope] then
       return false
     end
@@ -49,7 +31,7 @@ function OidcHandler:access(config)
   -- plugin has already set the credentials. The 'config.anomyous' approach to define
   -- "and/or" relationship between auth plugins is not utilized
   if oidcConfig.skip_already_auth_requests and kong.client.get_credential() then
-    ngx.log(ngx.DEBUG, "OidcHandler ignoring already auth request: " .. ngx.var.request_uri)
+    ngx.log(ngx.DEBUG, "OidcHandler ignoring already auth request: ", ngx.var.request_uri)
     return
   end
 
@@ -57,7 +39,7 @@ function OidcHandler:access(config)
     session.configure(config)
     handle(oidcConfig)
   else
-    ngx.log(ngx.DEBUG, "OidcHandler ignoring request, path: " .. ngx.var.request_uri)
+    ngx.log(ngx.DEBUG, "OidcHandler ignoring request, path: ", ngx.var.request_uri)
   end
 
   ngx.log(ngx.DEBUG, "OidcHandler done")
@@ -121,7 +103,7 @@ function handle(oidcConfig)
 end
 
 function make_oidc(oidcConfig)
-  ngx.log(ngx.DEBUG, "OidcHandler calling authenticate, requested path: " .. ngx.var.request_uri)
+  ngx.log(ngx.DEBUG, "OidcHandler calling authenticate, requested path: ", ngx.var.request_uri)
   local unauth_action = oidcConfig.unauth_action
   if unauth_action ~= "auth" then
     -- constant for resty.oidc library
@@ -136,7 +118,7 @@ function make_oidc(oidcConfig)
         if oidcConfig.recovery_page_path then
           local isValid, validationErr = validators.validate_recovery_page_path(oidcConfig.recovery_page_path)
           if isValid then
-     	    ngx.log(ngx.DEBUG, "Redirecting to recovery page: " .. oidcConfig.recovery_page_path)
+     	    ngx.log(ngx.DEBUG, "Redirecting to recovery page: ", oidcConfig.recovery_page_path)
             return ngx.redirect(oidcConfig.recovery_page_path)
           end
           kong.log.err("Invalid recovery_page_path configured: ", validationErr)
@@ -157,18 +139,20 @@ function introspect(oidcConfig)
     end
     if err then
       if oidcConfig.bearer_only == "yes" then
-        ngx.header["WWW-Authenticate"] = 'Bearer realm="' .. oidcConfig.realm .. '",error="' .. err .. '"'
+        local realm = validators.escape_http_quoted_string(oidcConfig.realm, "kong")
+        local reason = validators.escape_http_quoted_string(err, "invalid_token")
+        ngx.header["WWW-Authenticate"] = 'Bearer realm="' .. realm .. '",error="' .. reason .. '"'
         return kong.response.error(ngx.HTTP_UNAUTHORIZED)
       end
       return nil
     end
     if oidcConfig.validate_scope == "yes" then
-      if not has_all_scopes(oidcConfig.scope, res.scope) then
+      if not has_all_scopes(oidcConfig.parsed_scope, res.scope) then
         kong.log.err("Scope validation failed")
         return kong.response.error(ngx.HTTP_FORBIDDEN)
       end
     end
-    ngx.log(ngx.DEBUG, "OidcHandler introspect succeeded, requested path: " .. ngx.var.request_uri)
+    ngx.log(ngx.DEBUG, "OidcHandler introspect succeeded, requested path: ", ngx.var.request_uri)
     return res
   end
   return nil

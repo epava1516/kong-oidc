@@ -32,6 +32,7 @@ function TestUtils:testOptions()
     client_secret = 2,
     discovery = "d",
     scope = "openid",
+    realm = "kong",
     response_type = "code",
     session_secret = "plain-text-secret",
     ssl_verify = "no",
@@ -40,7 +41,9 @@ function TestUtils:testOptions()
     filters = " /pattern1 , ^/pattern2$ ",
     ignore_auth_filters = " /pattern3 ",
     logout_path = "/logout",
+    redirect_uri = "/cb",
     redirect_after_logout_uri = "/login",
+    post_logout_redirect_uri = "/logout-complete",
     userinfo_header_name = "X-UI",
     id_token_header_name = "X-ID",
     access_token_header_name = "Authorization",
@@ -60,9 +63,12 @@ function TestUtils:testOptions()
   lu.assertEquals(opts.ssl_verify, "no")
   lu.assertEquals(opts.token_endpoint_auth_method, "client_secret_post")
   lu.assertEquals(opts.introspection_endpoint_auth_method, "client_secret_basic")
-  lu.assertEquals(opts.redirect_uri, "/path/")
+  lu.assertEquals(opts.realm, "kong")
+  lu.assertEquals(opts.redirect_uri, "/cb")
+  lu.assertItemsEquals({"openid"}, opts.parsed_scope)
   lu.assertEquals(opts.logout_path, "/logout")
   lu.assertEquals(opts.redirect_after_logout_uri, "/login")
+  lu.assertEquals(opts.post_logout_redirect_uri, "/logout-complete")
   lu.assertEquals(opts.userinfo_header_name, "X-UI")
   lu.assertEquals(opts.id_token_header_name, "X-ID")
   lu.assertEquals(opts.access_token_header_name, "Authorization")
@@ -91,6 +97,33 @@ function TestUtils:testCommonItem()
   lu.assertTrue(utils.has_common_item("aud2", {"aud2", "aud3"}))
   lu.assertTrue(utils.has_common_item({"aud2","aud3","aud4"}, {"aud4", "aud5"}))
   lu.assertFalse(utils.has_common_item({"aud2","aud3","aud4"}, {"aud5", "aud6"}))
+end
+
+function TestUtils:testHasBearerAccessToken()
+  _G.ngx = {
+    req = {
+      get_headers = function()
+        return {
+          Authorization = "Bearer token"
+        }
+      end
+    }
+  }
+
+  lu.assertTrue(utils.has_bearer_access_token())
+
+  ngx.req.get_headers = function()
+    return {
+      Authorization = "Basic token"
+    }
+  end
+
+  lu.assertFalse(utils.has_bearer_access_token())
+end
+
+function TestUtils:testCommonItemIgnoresNonStrings()
+  lu.assertFalse(utils.has_common_item({"aud1", true}, {false, 123}))
+  lu.assertTrue(utils.has_common_item({"aud1", true}, {"aud1", 123}))
 end
 
 lu.run()

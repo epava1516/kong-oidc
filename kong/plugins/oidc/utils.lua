@@ -3,6 +3,7 @@ local constants = require "kong.constants"
 local validators = require("kong.plugins.oidc.validators")
 
 local M = {}
+local scope_cache = {}
 
 local function parseFilters(csvFilters)
   return validators.parse_filter_csv(csvFilters)
@@ -10,6 +11,29 @@ end
 
 local function formatAsBearerToken(token)
   return "Bearer " .. token
+end
+
+local function parseScopes(value)
+  if value == nil then
+    return {}
+  end
+
+  if type(value) == "table" then
+    return value
+  end
+
+  local cached = scope_cache[value]
+  if cached then
+    return cached
+  end
+
+  local scopes = {}
+  for scope in tostring(value):gmatch("%S+") do
+    table.insert(scopes, scope)
+  end
+
+  scope_cache[value] = scopes
+  return scopes
 end
 
 function M.get_redirect_uri(ngx)
@@ -52,6 +76,7 @@ function M.get_options(config, ngx)
     realm = config.realm,
     redirect_uri = config.redirect_uri or M.get_redirect_uri(ngx),
     scope = config.scope,
+    parsed_scope = parseScopes(config.scope),
     validate_scope = config.validate_scope,
     response_type = config.response_type,
     ssl_verify = config.ssl_verify,
@@ -130,7 +155,7 @@ local function set_consumer(consumer, credential)
 end
 
 function M.injectAccessToken(accessToken, headerName, bearerToken)
-  ngx.log(ngx.DEBUG, "Injecting " .. headerName)
+  ngx.log(ngx.DEBUG, "Injecting ", headerName)
   local token = accessToken
   if (bearerToken) then
     token = formatAsBearerToken(token)
@@ -139,7 +164,7 @@ function M.injectAccessToken(accessToken, headerName, bearerToken)
 end
 
 function M.injectIDToken(idToken, headerName)
-  ngx.log(ngx.DEBUG, "Injecting " .. headerName)
+  ngx.log(ngx.DEBUG, "Injecting ", headerName)
   local tokenStr = cjson.encode(idToken)
   kong.service.request.set_header(headerName, ngx.encode_base64(tokenStr))
 end
@@ -152,7 +177,7 @@ function M.setCredentials(user)
 end
 
 function M.injectUser(user, headerName)
-  ngx.log(ngx.DEBUG, "Injecting " .. headerName)
+  ngx.log(ngx.DEBUG, "Injecting ", headerName)
   local userinfo = cjson.encode(user)
   kong.service.request.set_header(headerName, ngx.encode_base64(userinfo))
 end
@@ -195,9 +220,9 @@ end
 
 function M.has_bearer_access_token()
   local header = ngx.req.get_headers()['Authorization']
-  if header and header:find(" ") then
-    local divider = header:find(' ')
-    if string.lower(header:sub(0, divider-1)) == string.lower("Bearer") then
+  if header then
+    local divider = header:find(" ", 1, true)
+    if divider and string.lower(header:sub(1, divider - 1)) == "bearer" then
       return true
     end
   end
@@ -216,12 +241,17 @@ function M.has_common_item(t1, t2)
   if type(t2) == "string" then
     t2 = { t2 }
   end
-  local i1, i2
-  for _, i1 in pairs(t1) do
-    for _, i2 in pairs(t2) do
-      if type(i1) == "string" and type(i2) == "string" and i1 == i2 then
-        return true
-      end
+  local lookup = {}
+
+  for _, item in ipairs(t1) do
+    if type(item) == "string" then
+      lookup[item] = true
+    end
+  end
+
+  for _, item in ipairs(t2) do
+    if type(item) == "string" and lookup[item] then
+      return true
     end
   end
   return false

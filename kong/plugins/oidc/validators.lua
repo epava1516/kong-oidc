@@ -24,6 +24,39 @@ function M.validate_recovery_page_path(value)
   return true
 end
 
+function M.validate_redirect_target(value)
+  return M.validate_recovery_page_path(value)
+end
+
+function M.validate_realm(value)
+  if value == nil then
+    return true
+  end
+
+  if value == "" then
+    return false, "must not be empty"
+  end
+
+  if value:find("[%c]") then
+    return false, "must not contain control characters"
+  end
+
+  return true
+end
+
+function M.escape_http_quoted_string(value, fallback)
+  local str = tostring(value or fallback or "")
+  str = str:gsub("[%c]", " ")
+  str = str:gsub("\\", "\\\\")
+  str = str:gsub('"', '\\"')
+
+  if str == "" then
+    return fallback or ""
+  end
+
+  return str
+end
+
 function M.validate_filter_pattern(value)
   if value == nil then
     return true

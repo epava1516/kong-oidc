@@ -1,5 +1,6 @@
-ARG KONG_BASE_TAG
-FROM kong${KONG_BASE_TAG}
+ARG KONG_BASE_TAG=:2.8.0-ubuntu
+ARG KONG_BASE_DIGEST=sha256:025cd6086dd1809a98b5997426b5150693acf874f1a1224468e08cec8d2c7d93
+FROM kong${KONG_BASE_TAG}@${KONG_BASE_DIGEST}
 USER root
 
 ENV LUA_PATH=/usr/local/share/lua/5.1/?.lua;/usr/local/kong-oidc/?.lua;;
